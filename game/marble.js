@@ -9,20 +9,31 @@ class Marble {
     constructor(posx, posy, colour) {
         this.posx = posx;
         this.posy = posy;
+
+        this.init_posx = posx;
+        this.init_posy = posy;
+
         this.colour = colour;
         this.xoffset = 0;
         this.yoffset = 0;
         this.radius = 45;
         this.lock = false;
+        this.on_ring = false;
+        this.ring_id = null;
 
         this.draw = function() {
             noStroke();
             fill(colours[this.colour][0], colours[this.colour][1], colours[this.colour][2]);
             circle(this.posx, this.posy, this.radius);
+            fill(255);
+            circle(this.posx - 8, this.posy - 8, 10);
+
         }
 
         this.clicked = function() {
             var d = dist(mouseX, mouseY, this.posx, this.posy);
+            /* Do not toggle clicked if the marble is already
+            on a ring */
             if (d < this.radius / 2) {
                 this.xoffset = mouseX - this.posx;
                 this.yoffset = mouseY - this.posy;

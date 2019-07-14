@@ -4,9 +4,11 @@ class Ring {
         this.id = id;
         this.posx = posx;
         this.posy = posy;
+
         this.ring_colour = 245;
         this.has_marble = false;
         this.removable = true;
+
 
         this.draw = function() {
             stroke(BGN_COLOUR);
@@ -38,7 +40,6 @@ class Ring {
         stroke(BGN_COLOUR);
         fill(BGN_COLOUR);
         circle(this.posx, this.posy, 65);
-        this.has_marble = false;
     }
 
 }
