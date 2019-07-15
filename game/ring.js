@@ -34,6 +34,7 @@ class Ring {
 
     update_has_marble(has_marble) {
         this.has_marble = has_marble;
+        this.removable = !has_marble;
     }
 
     remove_ring() {
