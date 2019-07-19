@@ -1,8 +1,17 @@
-var BGN_COLOUR = 51
-var rings = [];
+const BGN_COLOUR = 51
+const alph = ["A", "B", "C", "D", "E", "F", "G"]
+const num_rings = [4, 5, 6, 7, 6, 5, 4];
+
+var rings = []
+var ring_labels = [];
 var marbles = [];
-var CANVAS_WIDTH = 1000;
-var CANVAS_HEIGHT = 900;
+
+var CANVAS_HEIGHT = 810; //window.innerHeight / 1.2;
+var CANVAS_WIDTH = 1000; //window.innerHeight / 0.9;
+
+let RING_RADIUS = CANVAS_HEIGHT * 65 / 900;
+let MARBLE_RADIUS = CANVAS_HEIGHT * 45 / 900;
+
 var ASSIST = true;
 var player1_marbles_pos = {};
 var player2_marbles_pos = {};
@@ -11,20 +20,11 @@ let font;
 let button_font;
 let num_font;
 
-// function preload() {
-//     font = loadFont('assets/MontserratAlternates-SemiBold.otf');
-//     // button_font = loadFont('assets/VarelaRound.otf');
-//     // num_font = loadFont('assets/SourceCodePro-Light.otf')
-
-// }
 
 function setup() {
     // put setup code here
     let canvas = createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
-
-
     reset_canvas();
-
 }
 
 function reset_canvas() {
@@ -35,40 +35,67 @@ function reset_canvas() {
     player1_marbles_pos = {};
     player2_marbles_pos = {};
     // Setup the rings
-    let posx = CANVAS_WIDTH * 130 / 1000;
+    let posx = CANVAS_WIDTH * 230 / 1000;
     let posy = CANVAS_HEIGHT * 340 / 900;
 
-    alph = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
-    num_rings = [4, 5, 6, 7, 6, 5, 4];
+    let temp_rings = [];
+
+    // Initialize rings with nulls
+    for (let i = 0; i < 9; ++i) {
+        temp_rings.push(null);
+    }
+    rings.push(temp_rings);
+
     for (let i = 0; i < alph.length; ++i) {
-        posx += 64;
-        posy = (CANVAS_HEIGHT * 340 / 900) - (num_rings[i] % 4) * 32;
+        posx += RING_RADIUS - 1;
+        posy = (CANVAS_HEIGHT * 340 / 900) - (num_rings[i] % 4) * RING_RADIUS / 2;
+        temp_rings = [];
+        temp_rings.push(null);
         for (j = 0; j < num_rings[i]; ++j) {
+            if (j == 0)
+                ring_labels.push([posx - 10, posy - 56, alph[i].concat(String(j + 1))]);
             let ring = new Ring(posx, posy, alph[i].concat(String(j + 1)));
-            rings.push(ring);
-            posy += 66;
+            temp_rings.push(ring);
+            posy += RING_RADIUS + 1;
         }
+        rings.push(temp_rings);
+        ring_labels.push([posx - 10, posy + 10, alph[i].concat(String(j))]);
     }
 
+    /* Fill up rings with extra nulls
+    This makes for easier analysis of removable rings later*/
+    for (let i = 0; i < rings.length; ++i) {
+        for (let j = rings[i].length - 1; j < 8; ++j) {
+            rings[i].push(null);
+        }
+    }
+    temp_rings = [];
+    for (let i = 0; i < 9; ++i) {
+        temp_rings.push(null);
+    }
+    rings.push(temp_rings);
+
+    // Tranpose so that the matrix matches the rendering
+    rings = transpose(rings);
+
     // Setup the marbles
-    posx = CANVAS_WIDTH * 685 / 1000;
-    posy = CANVAS_HEIGHT * 190 / 900;
+    posx = CANVAS_WIDTH * 725 / 1000;
+    posy = CANVAS_HEIGHT * 180 / 900;
     num_marbles = [10, 8, 6];
     c = ["C", "P", "Y"];
     for (let i = 0; i < c.length; ++i) {
-        posx += 66;
-        posy = (CANVAS_HEIGHT * 190 / 900) + i * 52;
+        posx += MARBLE_RADIUS + 10;
+        posy = (CANVAS_HEIGHT * 180 / 900) + i * MARBLE_RADIUS;
         for (j = 0; j < num_marbles[i]; ++j) {
             let marble = new Marble(posx, posy, c[i]);
             marbles.push(marble);
-            posy += 56;
+            posy += MARBLE_RADIUS + 10;
         }
     }
 
-    700
     // Setup the empty marble spaces for the players
-    posx = CANVAS_WIDTH * 150 / 1000;
-    posy = CANVAS_HEIGHT * 790 / 900;
+    posx = CANVAS_WIDTH * 100 / 1000;
+    posy = CANVAS_HEIGHT * 800 / 900;
     num_marbles = [6, 5, 4];
     let x = []
     for (let i = 0; i < 3; ++i) {
@@ -79,51 +106,71 @@ function reset_canvas() {
         }
 
         player1_marbles_pos[c[i]] = { 'posx': x, 'posy': posy };
-        player2_marbles_pos[c[i]] = { 'posx': x, 'posy': posy - (CANVAS_HEIGHT * 700 / 900) };
+        player2_marbles_pos[c[i]] = { 'posx': x, 'posy': posy - (CANVAS_HEIGHT * 710 / 900) };
 
         posx += 20
     }
 
-    let x_text = createP("X");
-    x_text.position(150, 150);
-    x_text.style('font-size', '20px');
-    // x_text.style('font-family', button_font.font.names.postScriptName["en"]);
-    x_text.style('color', 'white');
-    x_text.mouseClicked(reset_canvas);
+    // Display Controls
+    posx = CANVAS_WIDTH * 50 / 1000;
+    posy = CANVAS_HEIGHT * 300 / 900;
+    let reset_text = select("#reset");
+    reset_text.position(posx, posy);
+
+    posy += CANVAS_HEIGHT * 80 / 900;
+    let undo_text = select("#undo");
+    undo_text.position(posx, posy);
+
+    posy += CANVAS_HEIGHT * 80 / 900;
+    let redo_text = select("#redo");
+    redo_text.position(posx, posy);
 }
 
 function draw() {
     background(BGN_COLOUR);
     /* the order of drawings do matter because, marbles
-    must always be atop everything else*/
-    for (let i = 0; i < rings.length; ++i) {
-        rings[i].draw();
-        if (ASSIST) {
-            if (rings[i].removable) {
-                stroke(255, 0, 0);
-                noFill();
-                circle(rings[i].posx, rings[i].posy, 62);
+        must always be atop everything else*/
+
+    for (let i = 0; i < ring_labels.length; ++i) {
+        textSize(22);
+        fill(200);
+        text(ring_labels[i][2], ring_labels[i][0], ring_labels[i][1]);
+
+    }
+
+    if (rings.length > 0) {
+        set_removable_rings();
+
+        for (let i = 0; i < rings.length; ++i) {
+            for (let j = 0; j < rings[i].length; ++j) {
+                if (rings[i][j] != null) {
+                    rings[i][j].draw();
+                    if (ASSIST) {
+                        if (rings[i][j].removable) {
+                            stroke(255, 0, 0);
+                            noFill();
+                            circle(rings[i][j].posx, rings[i][j].posy, RING_RADIUS);
+                        }
+                    }
+                }
             }
         }
     }
-
     for (var key in player1_marbles_pos) {
         for (let i = 0; i < player1_marbles_pos[key]['posx'].length; ++i) {
             noStroke();
             fill(BGN_COLOUR + 50);
-            circle(player1_marbles_pos[key]['posx'][i], player1_marbles_pos[key]['posy'], 45);
+            circle(player1_marbles_pos[key]['posx'][i], player1_marbles_pos[key]['posy'], MARBLE_RADIUS);
             fill(BGN_COLOUR + 100);
             circle(player1_marbles_pos[key]['posx'][i] + 7, player1_marbles_pos[key]['posy'] + 7, 10);
 
             noStroke();
             fill(BGN_COLOUR + 50);
-            circle(player2_marbles_pos[key]['posx'][i], player2_marbles_pos[key]['posy'], 45);
+            circle(player2_marbles_pos[key]['posx'][i], player2_marbles_pos[key]['posy'], MARBLE_RADIUS);
             fill(BGN_COLOUR + 100);
             circle(player2_marbles_pos[key]['posx'][i] + 7, player2_marbles_pos[key]['posy'] + 7, 10);
         }
-
     }
-
 
     for (let i = 0; i < marbles.length; ++i) {
         marbles[i].draw();
@@ -132,19 +179,19 @@ function draw() {
 }
 
 function mousePressed() {
+    // Select the marble if clicked
     for (let i = 0; i < marbles.length; ++i) {
         if (marbles[i].clicked()) { return; }
     }
 
-    let ring_remove_id = null;
+    // Remove the ring if clicked
     for (let i = 0; i < rings.length; ++i) {
-        if (rings[i].clicked())
-            ring_remove_id = i;
-    }
-    if (ring_remove_id != null) {
-        print("i am here!")
-        rings.splice(ring_remove_id, 1);
-        return;
+        for (let j = 0; j < rings[i].length; ++j) {
+            if (rings[i][j] != null) {
+                if (rings[i][j].clicked())
+                    rings[i][j] = null;
+            }
+        }
     }
 }
 
@@ -160,39 +207,45 @@ function mouseReleased() {
         // check whether the marble is clicked
         if (marbles[i].lock) {
             for (let j = 0; j < rings.length; ++j) {
-                var d = dist(mouseX, mouseY, rings[j].posx, rings[j].posy);
-                /* check whether the mouse is inside the ring and if the
-                ring is empty */
-                if (d < 32.5 && !rings[j].has_marble) {
-                    marbles[i].posx = rings[j].posx;
-                    marbles[i].posy = rings[j].posy;
+                for (let k = 0; k < rings[j].length; ++k) {
+                    if (rings[j][k] != null) {
+                        var d = dist(mouseX, mouseY, rings[j][k].posx, rings[j][k].posy);
+                        /* check whether the mouse is inside the ring and if the
+                        ring is empty */
+                        if (d < 32.5 && !rings[j][k].has_marble) {
+                            marbles[i].posx = rings[j][k].posx;
+                            marbles[i].posy = rings[j][k].posy;
 
-                    /* make the marble stick to its ring unless
-                    moved to another ring*/
-                    marbles[i].init_posx = marbles[i].posx;
-                    marbles[i].init_posy = marbles[i].posy;
+                            /* make the marble stick to its ring unless
+                            moved to another ring*/
+                            marbles[i].init_posx = marbles[i].posx;
+                            marbles[i].init_posy = marbles[i].posy;
 
-                    marbles[i].on_ring = true;
+                            marbles[i].on_ring = true;
 
-                    // update the ring if the marble has changed the rings
-                    if (rings[j].id != marbles[i].ring_id && marbles[i].ring_id != null) {
+                            // update the ring if the marble has changed the rings
+                            if (rings[j][k].id != marbles[i].ring_id && marbles[i].ring_id != null) {
 
-                        /* we do this way, because the index of the rings
-                        keep changin as and when the rings get removed*/
-                        for (let k = 0; k < rings.length; ++k) {
-                            if (rings[k].id == marbles[i].ring_id) {
-                                rings[k].update_has_marble(false);
-                                break;
+                                /* we do this way, because the index of the rings
+                                keep changin as and when the rings get removed*/
+                                for (let n = 0; n < rings.length; ++n) {
+                                    for (let m = 0; m < rings[n].length; ++m) {
+                                        if (rings[n][m] != null && rings[n][m].id == marbles[i].ring_id) {
+                                            rings[n][m].update_has_marble(false);
+                                            break;
+                                        }
+                                    }
+                                }
                             }
-                        }
-                    }
 
-                    marbles[i].ring_id = rings[j].id;
-                    marble_on_ring = true; // flag to check a marble has been placed on a ring
-                    rings[j].update_has_marble(true);
-                    break;
+                            marbles[i].ring_id = rings[j][k].id;
+                            marble_on_ring = true; // flag to check a marble has been placed on a ring
+                            rings[j][k].update_has_marble(true);
+                            break;
+                        }
+                        marbles[i].lock = false;
+                    }
                 }
-                marbles[i].lock = false;
             }
             /* if the dragged marble is not moved to another
             ring, reset it to its previous position*/
@@ -200,13 +253,40 @@ function mouseReleased() {
 
                 marbles[i].posx = marbles[i].init_posx;
                 marbles[i].posy = marbles[i].init_posy;
-                marbles[i].on_ring = false;
-
-                // reset the ring that had the marble (if it did).
-                if (marbles[i].ring_id != null) {
-                    rings[marbles[i].ring_id].update_has_marble(false);
-                }
             }
         }
     }
+}
+
+function set_removable_rings() {
+    for (let i = 0; i < rings.length; ++i) {
+        for (let j = 0; j < rings[i].length; ++j) {
+            if (rings[i][j] != null) {
+                /*The idea behind selecting the removable
+                rings is as follows -
+                            0
+                         0     0
+                            0
+                         0     0
+                            0
+                Every ring (centre) is surrounded by 6 positions.
+                If the position is vacant, then it is replace with null
+                else, it has a ring. From the above figure, the central
+                ring is removable if and only if at least two adjacent 
+                postions around it are vacant/null.*/
+
+                if ((rings[i - 1][j] == null && rings[i - 1][j - 1] == null) ||
+                    (rings[i - 1][j - 1] == null && rings[i][j - 1] == null) ||
+                    (rings[i][j - 1] == null && rings[i + 1][j] == null) ||
+                    (rings[i + 1][j] == null && rings[i][j + 1] == null) ||
+                    (rings[i][j + 1] == null && rings[i - 1][j + 1] == null))
+                //  ||(rings[i - 1][j + 1] == null && rings[i - 1][j] == null)
+                    rings[i][j].removable = true;
+            }
+        }
+    }
+}
+
+function transpose(matrix) {
+    return matrix[0].map((col, i) => matrix.map(row => row[i]));
 }

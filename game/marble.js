@@ -16,7 +16,7 @@ class Marble {
         this.colour = colour;
         this.xoffset = 0;
         this.yoffset = 0;
-        this.radius = 45;
+        this.radius = MARBLE_RADIUS;
         this.lock = false;
         this.on_ring = false;
         this.ring_id = null;
@@ -26,7 +26,7 @@ class Marble {
             fill(colours[this.colour][0], colours[this.colour][1], colours[this.colour][2]);
             circle(this.posx, this.posy, this.radius);
             fill(255);
-            circle(this.posx - 8, this.posy - 8, 10);
+            circle(this.posx - 6, this.posy - 6, 10);
 
         }
 
