@@ -11,11 +11,19 @@ class Ring {
 
 
         this.draw = function() {
-            stroke(BGN_COLOUR);
-            fill(this.ring_colour);
-            circle(this.posx, this.posy, RING_RADIUS);
-            fill(BGN_COLOUR);
-            circle(this.posx, this.posy, RING_RADIUS / 3.25);
+            if (ASSIST && this.removable) {
+                stroke(BGN_COLOUR);
+                fill(this.ring_colour - 60);
+                circle(this.posx, this.posy, RING_RADIUS);
+                fill(BGN_COLOUR);
+                circle(this.posx, this.posy, RING_RADIUS / 3.25);
+            } else {
+                stroke(BGN_COLOUR);
+                fill(this.ring_colour);
+                circle(this.posx, this.posy, RING_RADIUS);
+                fill(BGN_COLOUR);
+                circle(this.posx, this.posy, RING_RADIUS / 3.25);
+            }
         }
 
         this.clicked = function() {
